@@ -1,0 +1,65 @@
+services:
+
+# services
+  # webserver
+  service_open_weather_webserver:
+    image: nginx:latest
+    container_name: container_open_weather_webserver
+    ports:
+      - "80:80"
+      - "8080:8080"
+    depends_on:
+      - service_open_weather_php_fpm
+    networks:
+      - network_open_weather
+    volumes:
+      - type: bind
+        source: ./backend/api-open-weather
+        target: /var/www/html/api-open-weather
+      - type: bind
+        source: ./backend/nginx/conf.d/backend-api.conf
+        target: /etc/nginx/conf.d/backend-api.conf
+      - type: bind
+        source: ./backend/nginx/nginx.conf
+        target: /etc/nginx/nginx.conf
+  service_open_weather_php_fpm:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: php-fpm/open-weather:v1
+    container_name: container_open_weather_php_fpm
+    ports:
+      - "9001:9001"
+    networks:
+      - network_open_weather
+    depends_on:
+      - service_open_weather_pgsql
+    volumes:
+      - type: bind
+        source: ./backend/api-open-weather
+        target: /var/www/html/api-open-weather
+      - type: bind
+        source: ./backend/php-fpm/www.conf
+        target: /usr/local/etc/php-fpm.d/www.conf
+  # pgsql
+  service_open_weather_pgsql:
+    image: postgres:latest
+    container_name: container_open_weather_pgsql
+    networks:
+      - network_open_weather
+    environment:
+      POSTGRES_DB: openweather
+      POSTGRES_USER: user_open_weather
+      POSTGRES_PASSWORD: DP4d3XsPA2KQVhrAuaMJ8mh4SYuCmV1G
+    ports:
+      - "5432:5432"
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+
+networks:
+  network_open_weather:
+
+volumes:
+  postgres_data:
